@@ -1,19 +1,21 @@
 extends KinematicBody2D
 
-var state_machine
+var state_machine # Animation Tree
+
 export var MOVE_SPEED : int = 100
 export var TERMINAL_VEL : int = 200
-
-var GRAVITY = 9
+export var GRAVITY = 9
 
 
 # Jump Variables
 export var MAX_JUMPS : int = 2
 export var JUMP_FORCE : int = 50
+export var JUMP_MIN : int = 25
+var jumps = MAX_JUMPS
 var landed = false
 
 
-#velocity
+# velocity
 var velocity : Vector2 = Vector2(0, 0)
 var velocity_prev : Vector2 = Vector2()
 
@@ -23,82 +25,84 @@ func _ready():
 	state_machine = $AnimationTree.get("parameters/playback")
 
 
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-#func _process(delta):
-#	pass
-
+# gets player input
 func get_input():
-	var current = state_machine.get_current_node()
 	#inputs
 	if Input.is_action_pressed("move_left"):
 		velocity.x = -MOVE_SPEED
-		state_machine.travel("run")
 		$Sprite.flip_h = true
 	elif Input.is_action_pressed("move_right"):
 		velocity.x = MOVE_SPEED
-		state_machine.travel("run")
 		$Sprite.flip_h = false
-	elif is_on_floor():
-		state_machine.travel("idle")
 	
-	if Input.is_action_just_pressed("jump") and is_on_floor():
-		$JumpTimer.start()
-		state_machine.travel("air_up")
+	jump_handler()
 
-func _physics_process(delta):
-	
-	get_input()
-	
-	if not is_on_floor():
+func jump_handler():
+	if Input.is_action_just_pressed("jump") and jumps > 0:
+		jumps -= 1
+		velocity.y = -JUMP_FORCE
 		
-		landed = false
-		$Sprite.scale.y = range_lerp(abs(velocity.y), 0, abs(JUMP_FORCE), 0.8, 1.0)
-		$Sprite.scale.x = range_lerp(abs(velocity.y), 0, abs(JUMP_FORCE), 1.1, 0.8)
-		
-		if velocity.y < 0:
+		# Wall Jumps
+		if is_on_wall():
+			if Input.is_action_pressed("right"):
+				velocity.x = -MOVE_SPEED
+			elif Input.is_action_pressed("left"):
+				velocity.x = MOVE_SPEED
+	elif is_on_floor():
+		jumps = MAX_JUMPS
+	
+	if Input.is_action_just_released("jump") and velocity.y < -JUMP_MIN:
+		velocity.y = -JUMP_MIN
+	
+
+
+func handle_animation():
+	if is_on_floor(): # ground animations
+		if abs(velocity.x) >= 1:
+			state_machine.travel("run")
+		else:
+			state_machine.travel("idle")
+	else: # air animations
+		if Input.is_action_just_pressed("jump") and jumps > 0:
+			state_machine.travel("double_jump")
+		elif velocity.y < 0:
 			state_machine.travel("air_up")
 		elif velocity.y > 0:
 			state_machine.travel("air_down")
 		else:
 			state_machine.travel("air_idle")
-	
-	#lerp
-	velocity.x = lerp(velocity.x, 0, 0.2)
-	
-	velocity.y = min(velocity.y + GRAVITY, TERMINAL_VEL)
-	
-	# handle collisions
-	velocity_prev = velocity
-	velocity = move_and_slide(velocity, Vector2.UP)
-	
-	#TODO Sprite Animations
-	# if jump pressed, play jump animation
-	# if jump pressed in mid-air, play double jump animation
-	#
-	# when jump animation is complete, go back to main loop
-	#
-	# when landed, play landed animation
-	# when animation is complete, return to main loop
-	
-	
-	
-	
-	
-	
-	
-	# Squash and Stretch Sprite
+
+func squash_and_stretch(delta):
+	if not is_on_floor():
+		landed = false
+		$Sprite.scale.y = range_lerp(abs(velocity.y), 0, abs(JUMP_FORCE), 0.8, 1.0)
+		$Sprite.scale.x = range_lerp(abs(velocity.y), 0, abs(JUMP_FORCE), 1.1, 0.8)
 	if not landed and is_on_floor():
 		landed = true
-		$Sprite.scale.x = range_lerp(abs(velocity_prev.y), 0, abs(1700), 1.2, 2.0)
+#		$Camera2D.add_trauma(0.2)
+		$Sprite.scale.x = range_lerp(abs(velocity_prev.y), 0, abs(1700), 1.2, 1.5)
 		$Sprite.scale.y = range_lerp(abs(velocity_prev.y), 0, abs(1700), 0.8, 0.5)
 	
 	$Sprite.scale.x = lerp($Sprite.scale.x, 1, 1 - pow(0.01, delta))
 	$Sprite.scale.y = lerp($Sprite.scale.y, 1, 1 - pow(0.01, delta))
+	
 
-
-func _on_AnimationPlayer_animation_changed(old_name, new_name):
-	print(new_name)
-
-
-func _on_JumpTimer_timeout():
-	velocity.y = -JUMP_FORCE
+func _physics_process(delta):
+	
+	
+	#lerp
+	velocity.x = lerp(velocity.x, 0, 0.2)
+	
+	#gravity
+	velocity.y = min(velocity.y + GRAVITY, TERMINAL_VEL)
+	velocity_prev = velocity
+	
+	# handle collisions
+	velocity = move_and_slide(velocity, Vector2.UP)
+	
+	handle_animation()
+	get_input()
+	squash_and_stretch(delta)
+	
+	print(Engine.get_frames_per_second())
+	

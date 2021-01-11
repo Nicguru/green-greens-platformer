@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=5 format=2]
 
 [ext_resource path="res://SCENES/Player.tscn" type="PackedScene" id=1]
 [ext_resource path="res://SCENES/GreenGreensParallax.tscn" type="PackedScene" id=2]
 [ext_resource path="res://platform_tileset.tres" type="TileSet" id=3]
+[ext_resource path="res://SCENES/ShakeCamera2D.gd" type="Script" id=4]
 
 [node name="TestLevel" type="Node2D"]
 
@@ -23,6 +24,10 @@ limit_smoothed = true
 smoothing_enabled = true
 editor_draw_limits = true
 editor_draw_drag_margin = true
+script = ExtResource( 4 )
+decay = 1.0
+max_offset = Vector2( 50, 75 )
+max_roll = 0.0
 
 [node name="ParallaxBackground" parent="." instance=ExtResource( 2 )]
 scroll_ignore_camera_zoom = true

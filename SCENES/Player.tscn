@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=2]
+[gd_scene load_steps=38 format=2]
 
 [ext_resource path="res://ATLAS/main-character-spritesheet.png" type="Texture" id=1]
 [ext_resource path="res://SCENES/Player.gd" type="Script" id=2]
@@ -92,7 +92,8 @@ tracks/0/keys = {
 
 [sub_resource type="Animation" id=9]
 resource_name = "jump"
-length = 0.2
+length = 0.15
+step = 0.05
 tracks/0/type = "value"
 tracks/0/path = NodePath("Sprite:frame")
 tracks/0/interp = 1
@@ -100,10 +101,10 @@ tracks/0/loop_wrap = true
 tracks/0/imported = false
 tracks/0/enabled = true
 tracks/0/keys = {
-"times": PoolRealArray( 0, 0.1, 0.2, 0.3 ),
-"transitions": PoolRealArray( 1, 1, 1, 1 ),
+"times": PoolRealArray( 0, 0.05, 0.1 ),
+"transitions": PoolRealArray( 1, 1, 1 ),
 "update": 1,
-"values": [ 70, 71, 72, 73 ]
+"values": [ 70, 71, 72 ]
 }
 
 [sub_resource type="Animation" id=10]
@@ -147,6 +148,9 @@ animation = "air_idle"
 [sub_resource type="AnimationNodeAnimation" id=15]
 animation = "air_up"
 
+[sub_resource type="AnimationNodeAnimation" id=31]
+animation = "double_jump"
+
 [sub_resource type="AnimationNodeAnimation" id=16]
 animation = "idle"
 
@@ -185,13 +189,27 @@ switch_mode = 2
 
 [sub_resource type="AnimationNodeStateMachineTransition" id=30]
 
+[sub_resource type="AnimationNodeStateMachineTransition" id=32]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id=33]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id=34]
+switch_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id=35]
+switch_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id=36]
+
 [sub_resource type="AnimationNodeStateMachine" id=12]
 states/air_down/node = SubResource( 13 )
-states/air_down/position = Vector2( 952, 359 )
+states/air_down/position = Vector2( 965, 355 )
 states/air_idle/node = SubResource( 14 )
-states/air_idle/position = Vector2( 841, 207 )
+states/air_idle/position = Vector2( 957, 207 )
 states/air_up/node = SubResource( 15 )
-states/air_up/position = Vector2( 962, 87 )
+states/air_up/position = Vector2( 965, 89 )
+states/double_jump/node = SubResource( 31 )
+states/double_jump/position = Vector2( 1214, 198.12 )
 states/idle/node = SubResource( 16 )
 states/idle/position = Vector2( 517, 110 )
 states/jump/node = SubResource( 17 )
@@ -200,9 +218,9 @@ states/land/node = SubResource( 18 )
 states/land/position = Vector2( 581, 244 )
 states/run/node = SubResource( 19 )
 states/run/position = Vector2( 227, 141 )
-transitions = [ "idle", "run", SubResource( 20 ), "run", "idle", SubResource( 21 ), "idle", "jump", SubResource( 22 ), "jump", "air_up", SubResource( 23 ), "air_idle", "air_down", SubResource( 24 ), "air_idle", "air_up", SubResource( 25 ), "air_down", "air_idle", SubResource( 26 ), "air_up", "air_idle", SubResource( 27 ), "air_down", "land", SubResource( 28 ), "land", "idle", SubResource( 29 ), "idle", "air_idle", SubResource( 30 ) ]
+transitions = [ "idle", "run", SubResource( 20 ), "run", "idle", SubResource( 21 ), "idle", "jump", SubResource( 22 ), "jump", "air_up", SubResource( 23 ), "air_idle", "air_down", SubResource( 24 ), "air_idle", "air_up", SubResource( 25 ), "air_down", "air_idle", SubResource( 26 ), "air_up", "air_idle", SubResource( 27 ), "air_down", "land", SubResource( 28 ), "land", "idle", SubResource( 29 ), "idle", "air_idle", SubResource( 30 ), "air_up", "double_jump", SubResource( 32 ), "air_down", "double_jump", SubResource( 33 ), "double_jump", "air_down", SubResource( 34 ), "double_jump", "air_up", SubResource( 35 ), "air_idle", "double_jump", SubResource( 36 ) ]
 start_node = "idle"
-graph_offset = Vector2( 53, 106.008 )
+graph_offset = Vector2( 362, 49.7039 )
 
 [sub_resource type="AnimationNodeStateMachinePlayback" id=3]
 
@@ -211,7 +229,11 @@ script = ExtResource( 2 )
 __meta__ = {
 "_edit_group_": true
 }
+TERMINAL_VEL = 300
+GRAVITY = 15
+MAX_JUMPS = 3
 JUMP_FORCE = 400
+JUMP_MIN = 200
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2( 0, -12.3089 )
@@ -238,10 +260,5 @@ texture = ExtResource( 1 )
 offset = Vector2( 0, -32 )
 vframes = 30
 hframes = 10
-frame = 128
-
-[node name="JumpTimer" type="Timer" parent="."]
-wait_time = 0.2
-one_shot = true
+frame = 122
 [connection signal="animation_changed" from="AnimationPlayer" to="." method="_on_AnimationPlayer_animation_changed"]
-[connection signal="timeout" from="JumpTimer" to="." method="_on_JumpTimer_timeout"]
