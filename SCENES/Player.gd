@@ -6,6 +6,8 @@ export var MOVE_SPEED : int = 100
 export var TERMINAL_VEL : int = 200
 export var GRAVITY = 9
 
+export var WALL_SLIDE_ACCEL : int = 6
+export var WALL_SLIDE_SPEED : int = 100
 
 # Jump Variables
 export var MAX_JUMPS : int = 2
@@ -30,10 +32,11 @@ func get_input():
 	#inputs
 	if Input.is_action_pressed("move_left"):
 		velocity.x = -MOVE_SPEED
-		$Sprite.flip_h = true
+#		$Sprite.flip_h = true
 	elif Input.is_action_pressed("move_right"):
 		velocity.x = MOVE_SPEED
-		$Sprite.flip_h = false
+#		$Sprite.flip_h = false
+		
 	
 	jump_handler()
 
@@ -43,11 +46,17 @@ func jump_handler():
 		velocity.y = -JUMP_FORCE
 		
 		# Wall Jumps
-		if is_on_wall():
-			if Input.is_action_pressed("right"):
-				velocity.x = -MOVE_SPEED
-			elif Input.is_action_pressed("left"):
-				velocity.x = MOVE_SPEED
+		if not is_on_floor() and is_on_wall():
+			if Input.is_action_pressed("move_right"):
+				velocity.x = -MOVE_SPEED * 5
+			elif Input.is_action_pressed("move_left"):
+				velocity.x = MOVE_SPEED * 5
+		
+		if is_on_floor():
+			state_machine.travel("jump")
+		else:
+			state_machine.travel("double_jump")
+		
 	elif is_on_floor():
 		jumps = MAX_JUMPS
 	
@@ -55,22 +64,42 @@ func jump_handler():
 		velocity.y = -JUMP_MIN
 	
 
+func wall_slide():
+	#wall slide
+	if is_on_wall() and (Input.is_action_pressed("move_left") or Input.is_action_pressed("move_right")):
+		jumps = MAX_JUMPS
+		if velocity.y >= 0:
+			velocity.y = min(velocity.y + WALL_SLIDE_ACCEL, WALL_SLIDE_SPEED)
+	
 
 func handle_animation():
-	if is_on_floor(): # ground animations
+	if velocity.x > 1:
+		$Sprite.flip_h = false
+	elif velocity.x < -1:
+		$Sprite.flip_h = true
+		
+	if is_on_floor():
 		if abs(velocity.x) >= 1:
 			state_machine.travel("run")
 		else:
 			state_machine.travel("idle")
-	else: # air animations
-		if Input.is_action_just_pressed("jump") and jumps > 0:
-			state_machine.travel("double_jump")
-		elif velocity.y < 0:
-			state_machine.travel("air_up")
-		elif velocity.y > 0:
-			state_machine.travel("air_down")
+	if not is_on_floor():
+		# wall sliding animation
+		if is_on_wall():
+			if Input.is_action_pressed("move_left"):
+				$Sprite.flip_h = false
+				state_machine.travel("wall_slide")
+			elif Input.is_action_pressed("move_right"):
+				$Sprite.flip_h = true
+				state_machine.travel("wall_slide")
 		else:
-			state_machine.travel("air_idle")
+			# falling animation
+			if velocity.y < 0:
+				state_machine.travel("air_up")
+			elif velocity.y > 0:
+				state_machine.travel("air_down")
+			else:
+				state_machine.travel("air_idle")
 
 func squash_and_stretch(delta):
 	if not is_on_floor():
@@ -89,9 +118,13 @@ func squash_and_stretch(delta):
 
 func _physics_process(delta):
 	
+	handle_animation()
+	get_input()
+	wall_slide()
 	
 	#lerp
 	velocity.x = lerp(velocity.x, 0, 0.2)
+	
 	
 	#gravity
 	velocity.y = min(velocity.y + GRAVITY, TERMINAL_VEL)
@@ -100,8 +133,6 @@ func _physics_process(delta):
 	# handle collisions
 	velocity = move_and_slide(velocity, Vector2.UP)
 	
-	handle_animation()
-	get_input()
 	squash_and_stretch(delta)
 	
 	print(Engine.get_frames_per_second())
