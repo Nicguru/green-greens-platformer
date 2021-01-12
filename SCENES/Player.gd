@@ -2,7 +2,10 @@ extends KinematicBody2D
 
 var state_machine # Animation Tree
 
-export var MOVE_SPEED : int = 100
+signal shake_camera(trauma)
+
+export var MOVE_SPEED : float = 0.5
+export var MAX_SPEED : int = 200
 export var TERMINAL_VEL : int = 200
 export var GRAVITY = 9
 
@@ -15,6 +18,9 @@ export var JUMP_FORCE : int = 50
 export var JUMP_MIN : int = 25
 var jumps = MAX_JUMPS
 var landed = false
+
+var is_attacking = false
+var is_ground_pound = false
 
 
 # velocity
@@ -30,15 +36,24 @@ func _ready():
 # gets player input
 func get_input():
 	#inputs
-	if Input.is_action_pressed("move_left"):
-		velocity.x = -MOVE_SPEED
-#		$Sprite.flip_h = true
-	elif Input.is_action_pressed("move_right"):
-		velocity.x = MOVE_SPEED
-#		$Sprite.flip_h = false
-		
+	if is_on_floor() and Input.is_action_just_pressed("attack"):
+		state_machine.travel("attack")
+	if not is_attacking:
+		if Input.is_action_pressed("move_left"):
+			velocity.x = lerp(velocity.x, -MAX_SPEED, MOVE_SPEED)
+		if Input.is_action_pressed("move_right"):
+			velocity.x = lerp(velocity.x, MAX_SPEED, MOVE_SPEED)
+		if Input.is_action_just_pressed("move_down"):
+			is_ground_pound = true
+		jump_handler()
+
+func toggle_attacking():
+	is_attacking = !is_attacking
+
+func ground_pound():
+	if is_ground_pound and not is_on_floor():
+		velocity.y = TERMINAL_VEL
 	
-	jump_handler()
 
 func jump_handler():
 	if Input.is_action_just_pressed("jump") and jumps > 0:
@@ -48,9 +63,9 @@ func jump_handler():
 		# Wall Jumps
 		if not is_on_floor() and is_on_wall():
 			if Input.is_action_pressed("move_right"):
-				velocity.x = -MOVE_SPEED * 5
+				velocity.x = -MAX_SPEED * 4
 			elif Input.is_action_pressed("move_left"):
-				velocity.x = MOVE_SPEED * 5
+				velocity.x = MAX_SPEED * 4
 		
 		if is_on_floor():
 			state_machine.travel("jump")
@@ -66,7 +81,7 @@ func jump_handler():
 
 func wall_slide():
 	#wall slide
-	if is_on_wall() and (Input.is_action_pressed("move_left") or Input.is_action_pressed("move_right")):
+	if is_on_wall() and velocity.y > 0 and (Input.is_action_pressed("move_left") or Input.is_action_pressed("move_right")):
 		jumps = MAX_JUMPS
 		if velocity.y >= 0:
 			velocity.y = min(velocity.y + WALL_SLIDE_ACCEL, WALL_SLIDE_SPEED)
@@ -85,7 +100,7 @@ func handle_animation():
 			state_machine.travel("idle")
 	if not is_on_floor():
 		# wall sliding animation
-		if is_on_wall():
+		if is_on_wall() and velocity.y > 0:
 			if Input.is_action_pressed("move_left"):
 				$Sprite.flip_h = false
 				state_machine.travel("wall_slide")
@@ -108,7 +123,9 @@ func squash_and_stretch(delta):
 		$Sprite.scale.x = range_lerp(abs(velocity.y), 0, abs(JUMP_FORCE), 1.1, 0.8)
 	if not landed and is_on_floor():
 		landed = true
-#		$Camera2D.add_trauma(0.2)
+		if is_ground_pound:
+			is_ground_pound = false
+			emit_signal("shake_camera", 0.4)
 		$Sprite.scale.x = range_lerp(abs(velocity_prev.y), 0, abs(1700), 1.2, 1.5)
 		$Sprite.scale.y = range_lerp(abs(velocity_prev.y), 0, abs(1700), 0.8, 0.5)
 	
@@ -121,6 +138,7 @@ func _physics_process(delta):
 	handle_animation()
 	get_input()
 	wall_slide()
+	ground_pound()
 	
 	#lerp
 	velocity.x = lerp(velocity.x, 0, 0.2)
@@ -134,6 +152,3 @@ func _physics_process(delta):
 	velocity = move_and_slide(velocity, Vector2.UP)
 	
 	squash_and_stretch(delta)
-	
-	print(Engine.get_frames_per_second())
-	
