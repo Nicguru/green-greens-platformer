@@ -3,8 +3,8 @@
 [ext_resource path="res://ATLAS/main-character-spritesheet.png" type="Texture" id=1]
 [ext_resource path="res://SCENES/Player.gd" type="Script" id=2]
 
-[sub_resource type="RectangleShape2D" id=1]
-extents = Vector2( 9.96702, 12.3329 )
+[sub_resource type="CapsuleShape2D" id=50]
+height = 4.10953
 
 [sub_resource type="Animation" id=2]
 resource_name = "air_down"
@@ -288,9 +288,9 @@ switch_mode = 2
 
 [sub_resource type="AnimationNodeStateMachineTransition" id=46]
 
-[sub_resource type="AnimationNodeStateMachineTransition" id=49]
+[sub_resource type="AnimationNodeStateMachineTransition" id=47]
 
-[sub_resource type="AnimationNodeStateMachine" id=47]
+[sub_resource type="AnimationNodeStateMachine" id=48]
 states/air_down/node = SubResource( 12 )
 states/air_down/position = Vector2( 965, 355 )
 states/air_idle/node = SubResource( 13 )
@@ -311,27 +311,25 @@ states/run/node = SubResource( 20 )
 states/run/position = Vector2( 227, 141 )
 states/wall_slide/node = SubResource( 21 )
 states/wall_slide/position = Vector2( 778, 225.704 )
-transitions = [ "idle", "run", SubResource( 22 ), "run", "idle", SubResource( 23 ), "idle", "jump", SubResource( 24 ), "jump", "air_up", SubResource( 25 ), "air_idle", "air_down", SubResource( 26 ), "air_idle", "air_up", SubResource( 27 ), "air_down", "air_idle", SubResource( 28 ), "air_up", "air_idle", SubResource( 29 ), "air_down", "land", SubResource( 30 ), "land", "idle", SubResource( 31 ), "idle", "air_idle", SubResource( 32 ), "air_up", "double_jump", SubResource( 33 ), "air_down", "double_jump", SubResource( 34 ), "double_jump", "air_down", SubResource( 35 ), "double_jump", "air_up", SubResource( 36 ), "air_idle", "double_jump", SubResource( 37 ), "wall_slide", "air_idle", SubResource( 38 ), "air_idle", "wall_slide", SubResource( 39 ), "wall_slide", "jump", SubResource( 40 ), "double_jump", "wall_slide", SubResource( 41 ), "wall_slide", "land", SubResource( 42 ), "idle", "attack", SubResource( 43 ), "attack", "idle", SubResource( 44 ), "jump", "double_jump", SubResource( 45 ), "land", "jump", SubResource( 46 ), "run", "attack", SubResource( 49 ) ]
+transitions = [ "idle", "run", SubResource( 22 ), "run", "idle", SubResource( 23 ), "idle", "jump", SubResource( 24 ), "jump", "air_up", SubResource( 25 ), "air_idle", "air_down", SubResource( 26 ), "air_idle", "air_up", SubResource( 27 ), "air_down", "air_idle", SubResource( 28 ), "air_up", "air_idle", SubResource( 29 ), "air_down", "land", SubResource( 30 ), "land", "idle", SubResource( 31 ), "idle", "air_idle", SubResource( 32 ), "air_up", "double_jump", SubResource( 33 ), "air_down", "double_jump", SubResource( 34 ), "double_jump", "air_down", SubResource( 35 ), "double_jump", "air_up", SubResource( 36 ), "air_idle", "double_jump", SubResource( 37 ), "wall_slide", "air_idle", SubResource( 38 ), "air_idle", "wall_slide", SubResource( 39 ), "wall_slide", "jump", SubResource( 40 ), "double_jump", "wall_slide", SubResource( 41 ), "wall_slide", "land", SubResource( 42 ), "idle", "attack", SubResource( 43 ), "attack", "idle", SubResource( 44 ), "jump", "double_jump", SubResource( 45 ), "land", "jump", SubResource( 46 ), "run", "attack", SubResource( 47 ) ]
 start_node = "idle"
 graph_offset = Vector2( 60, -0.296097 )
 
-[sub_resource type="AnimationNodeStateMachinePlayback" id=48]
+[sub_resource type="AnimationNodeStateMachinePlayback" id=49]
 
 [node name="Player" type="KinematicBody2D"]
 script = ExtResource( 2 )
 __meta__ = {
 "_edit_group_": true
 }
-MAX_SPEED = 150
-TERMINAL_VEL = 300
-GRAVITY = 15
+speed = Vector2( 150, 400 )
 MAX_JUMPS = 1
 JUMP_FORCE = 400
 JUMP_MIN = 200
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2( 0, -12.3089 )
-shape = SubResource( 1 )
+shape = SubResource( 50 )
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 anims/air_down = SubResource( 2 )
@@ -346,15 +344,19 @@ anims/run = SubResource( 10 )
 anims/wall_slide = SubResource( 11 )
 
 [node name="AnimationTree" type="AnimationTree" parent="."]
-tree_root = SubResource( 47 )
+tree_root = SubResource( 48 )
 anim_player = NodePath("../AnimationPlayer")
 active = true
-parameters/playback = SubResource( 48 )
+parameters/playback = SubResource( 49 )
 
 [node name="Sprite" type="Sprite" parent="."]
 texture = ExtResource( 1 )
 offset = Vector2( 0, -32 )
 vframes = 30
 hframes = 10
-frame = 115
-[connection signal="animation_changed" from="AnimationPlayer" to="." method="_on_AnimationPlayer_animation_changed"]
+frame = 117
+
+[node name="PlatformDetector" type="RayCast2D" parent="."]
+enabled = true
+cast_to = Vector2( 0, 10 )
+collision_mask = 8
